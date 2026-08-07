@@ -10,6 +10,7 @@
 - Day4: 動態偵測(影格差異法、背景相減法MOG2)
 - Day5: 方向判斷邏輯與死區(deadzone)設計
 - Day6: 程式碼重構、FPS效能監控
+- Day7: 影片連結:https://drive.google.com/file/d/1cBRawfx2x6OdJi6wnm-D6SROSOBmG-YY/view?usp=drive_link
 
 ## 使用技術
 Python, OpenCV, NumPy
