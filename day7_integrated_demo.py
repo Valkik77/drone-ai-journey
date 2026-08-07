@@ -4,6 +4,8 @@ import time
 # 用意:匯入time模組,用來計算每一格畫面處理花了多少時間
 # 原理:time.time()回傳目前時間戳記(從1970年至今的秒數),兩次時間相減就是經過的時間
 
+count = 0 
+
 def get_direction(diff_x, diff_y, threshold=30):
     # 用意:把偏移量轉換成方向指令(跟Day5相同,不變動)
     # 原理:threshold死區避免小幅晃動造成過度反應
@@ -124,6 +126,11 @@ while True:
     key = cv2.waitKey(1) & 0xFF
     if key in [ord('q'), ord('Q')]:
         break
+    elif key in [ord('s'), ord('S')]:               # 檢查使用者是否按下了 S 鍵（代表 Screenshot 截圖功能）
+            count += 1                                  # 截圖數量加 1，用於更新下一張照片的檔案編號
+            filename = f"screenshot_{count}.png"        # 使用 f-string 格式化字串動態建立影像檔名（如 screenshot_1.png）
+            cv2.imwrite(filename, frame)                # 將當前這一幀的影像矩陣 (frame) 以指定檔名 (filename) 寫入硬碟儲存為 PNG 圖檔
+            print(f"已儲存 {filename}") 
 
 cap.release()
 cv2.destroyAllWindows()
