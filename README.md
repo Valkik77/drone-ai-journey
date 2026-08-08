@@ -12,6 +12,13 @@
 - Day6: 程式碼重構、FPS效能監控
 - Day7: 影片連結:https://drive.google.com/file/d/1cBRawfx2x6OdJi6wnm-D6SROSOBmG-YY/view?usp=drive_link
 
+## 第二週進度(Day8-13)
+- Day8: YOLO環境安裝,首次即時物件偵測
+- Day9: 自訂繪圖取代內建plot(),加入信心分數過濾
+- Day10: 類別篩選(鎖定特定物體),接上方向判斷邏輯
+- Day11: 多目標處理,選擇離畫面中心最近的目標
+- Day12: 效能測試與優化(640→320解析度,FPS約12→24提升)
+- Day13: 程式碼重構為函式,提升可維護性
 ## 使用技術
 Python, OpenCV, NumPy
 
