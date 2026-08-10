@@ -1,6 +1,9 @@
 import pybullet as p
 import pybullet_data
 import time
+import matplotlib
+matplotlib.rcParams['font.sans-serif'] = ['Microsoft JhengHei']
+matplotlib.rcParams['axes.unicode_minus'] = False
 import matplotlib.pyplot as plt
 
 physicsClient = p.connect(p.DIRECT)
@@ -43,9 +46,9 @@ print(f"最終高度: {heights[-1]:.3f} 公尺", flush=True)
 print(f"起始高度: {heights[0]:.3f} 公尺", flush=True)
 
 plt.plot(heights)
-plt.xlabel("模擬步數")
-plt.ylabel("高度 (公尺)")
-plt.title("球體懸停測試 - 高度變化")
+plt.xlabel("Simulation Step")
+plt.ylabel("Height (m)")
+plt.title("Sphere Hover Test - Height over Time")
 plt.savefig("day15_hover_result.png")
 # 用意:把整個模擬過程中高度隨時間變化的曲線畫成圖表,存成圖片檔
 # 原理:比起看3D動畫,這種數據圖表更直接證明「懸停有沒有成功」——
