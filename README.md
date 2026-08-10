@@ -22,6 +22,37 @@
 第二週從「只會辨識固定顏色」進化到「使用YOLOv8n辨識80種常見物體」,
 並實作了完整的AI感知→決策流程:
 
+
+## 第二週進度(Day15-)
+- Day15: 
+  懸停測試中,程式使用 p.connect(p.GUI) 開啟一個3D視覺化視窗,原本預期球體會因為施加的向上力而穩定懸停在畫面中。但實際執行時,終端機出現這樣的錯誤:
+  pybullet.error: Not connected to physics server.
+  將終端機的完整輸出給AI看的時候,回答發現在程式理論上還在跑迴圈的中途,就出現了:
+    numActiveThreads = 0
+    stopping threads
+    finished
+  意思是PyBullet的物理伺服器執行緒自己終止了,不是程式邏輯錯誤和操作上按錯按鍵
+
+  按照回答時給的指示
+    先檢查是不是誤觸鍵盤中斷程式(KeyboardInterrupt)——結果還是一樣
+    檢查一下終端機輸出的執行緒訊息(ExampleBrowserThreadFunc、MotionThreadFunc),和畫面的顯示卡資訊:
+      Vendor = Intel
+      Renderer = Intel(R) Iris(R) Xe Graphics
+
+  判斷問題似乎是 PyBullet 的即時3D渲染引擎(GUI模式)與我的筆電的內顯(Intel Iris Xe)之間存在相容性問題,所以視窗渲染執行緒在運作過程中意外終止,連帶讓物理模擬的連線也一併斷開
+
+  之後改用 DIRECT 模式來解決問題
+    PyBullet提供兩種連線模式:
+
+    GUI模式(p.GUI)
+    DIRECT模式(p.DIRECT)
+
+    改用 p.connect(p.DIRECT) 後,完全跳過了容易出問題的3D渲染這一步,只保留核心的物理運算(重力、施力、位置計算),這部分運算穩定不受顯示卡影響,問題因此解決。
+    用圖表取代視覺化觀察
+    用 p.getBasePositionAndOrientation() 取得球體當下的座標,把高度(z軸)數值逐一記錄進一個list,模擬跑完後用 matplotlib 把整個過程的高度變化畫成折線圖，方便觀察結果。
+
+
+
 - 技術棧:YOLOv8n(Ultralytics)、信心分數過濾、類別篩選、多目標決策
 - 效能:640解析度平均FPS約12-14,降至320解析度後提升至約20-25
 - 觀察到的模型限制:對訓練資料中罕見角度物體辨識率下降、相似形狀物體
