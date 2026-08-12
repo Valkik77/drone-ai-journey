@@ -4,12 +4,18 @@ import time
 import pybullet as p
 import pybullet_data
 import os
+from collections import deque
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # 用意:告訴系統允許多個OpenMP執行環境同時存在,強制繼續執行
 # 原理:這是設定一個環境變數,在程式啟動的最開始就要設定好,
 #      才能在後面import pybullet、ultralytics時生效,避免衝突直接讓程式崩潰
 #      這是pybullet跟pytorch(ultralytics底層用到)版本衝突的已知問題,
 #      官方建議的暫時解法就是設定這個環境變數放行
+
+diff_x_history = deque(maxlen=5)
+diff_y_history = deque(maxlen=5)
+# 用意:記錄最近5格畫面的偏移量,取平均來平滑雜訊
+# 原理:跟Day13處理過的邏輯相同,現在正式套用進即時整合版本
 
 
 def get_direction(diff_x, diff_y, threshold=30):
@@ -122,11 +128,16 @@ while step_count < MAX_STEPS:
         center_x, center_y = target["center"]
         diff_x = center_x - frame_center_x
         diff_y = center_y - frame_center_y
-        direction = get_direction(diff_x, diff_y)
+
+        diff_x_history.append(diff_x)
+        diff_y_history.append(diff_y)
+        smoothed_diff_x = sum(diff_x_history) / len(diff_x_history)
+        smoothed_diff_y = sum(diff_y_history) / len(diff_y_history)
+        # 用意:用平滑後的偏移量做方向判斷,減少單一格畫面雜訊造成的誤判
+
+        direction = get_direction(smoothed_diff_x, smoothed_diff_y)
     else:
         direction = ["STAY"]
-        # 用意:如果這一格畫面沒有偵測到任何目標(例如人暫時離開鏡頭),
-        #      預設維持STAY,不要因為沒有目標就讓球體亂飄或停止受力平衡
 
     fx, fy = direction_to_force(direction)
 
