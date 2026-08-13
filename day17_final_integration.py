@@ -102,7 +102,7 @@ TARGET_CLASS = "person"
 CONFIDENCE_THRESHOLD = 0.6
 prev_time = time.time()
 
-MAX_STEPS = 1500
+MAX_STEPS = 300
 step_count = 0
 # 用意:設定跑多少格畫面後自動結束,方便你錄demo時有明確的結束時間點,
 #      不用手動按q(手動按也可以,這只是額外加一個保險機制)
