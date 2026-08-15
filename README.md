@@ -85,9 +85,11 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - 未來可導入真實硬體(如DJI Tello EDU)驗證，或加入PID控制器提升穩定性
 
 ## Demo影片
-[第一週：顏色追蹤展示](連結)
-[第二週：YOLO物件偵測展示](連結)
-[第三週：即時整合最終展示](連結)
+[第一週：顏色追蹤展示](https://drive.google.com/file/d/1HHiVPZsytm1p4V_LugqAZVtY8-A6lJrS/view?usp=sharing)
+[第二週：YOLO物件偵測展示](https://drive.google.com/file/d/1aFvg5TK8YyMEkwfbXb5qWWhHKYrPYITV/view?usp=sharing)
+[第三週：即時整合最終展示](https://drive.google.com/file/d/16iHMEwoX0FAtpYZDc4s8OP_5PZmbttL2/view?usp=sharing
+                        https://drive.google.com/file/d/1wlJZ50uZaNAIQQlGx2uDByH5-ySZy8v9/view?usp=sharing
+                        https://drive.google.com/file/d/1WuBEx0zIUK1emY_hZdn68olpfNhRBgfg/view?usp=sharing)
 
 ## 開發過程中的技術挑戰與解決
 （挑幾個你印象最深的debug故事，例如cv2.imshow位置錯誤、venv沒啟用、
