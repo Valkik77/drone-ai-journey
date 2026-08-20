@@ -34,9 +34,9 @@ def direction_to_force(direction_list, horizontal_force=5.0):
     return fx, fy
 
 # ---------- 多類別搜索 + 優先度排序 ----------
-TARGET_CLASSES = ["chair", "backpack", "bottle"]
-CLASS_PRIORITY = {"chair": 2, "backpack": 2, "bottle": 1}
-CONFIDENCE_THRESHOLD = 0.5
+TARGET_CLASSES = ["person", "backpack", "bottle"]
+CLASS_PRIORITY = {"person": 1, "backpack": 2, "bottle": 2}
+CONFIDENCE_THRESHOLD = 0.35
 
 def detect_candidates(results, model, target_classes, confidence_threshold, frame_center_x, frame_center_y):
     candidates = []
