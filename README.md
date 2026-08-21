@@ -130,6 +130,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - 目前施力控制為固定力，缺乏PID回饋機制，STAY狀態下仍有慣性漂移
 - 手持物體（如bottle）因晃動導致信心分數不穩定，較穩定站立的person類別更容易觸發搜索模式，反映YOLO對動態小物體的辨識限制
 - 未來可導入真實硬體(如DJI Tello EDU)驗證，或加入PID控制器提升穩定性
+- 若要製作手機遙控App，需要額外學習行動應用開發（React Native/Flutter）與即時串流技術，這部分超出目前的Python/AI開發範疇
 
 ## Demo影片
 [第一週：顏色追蹤展示](https://drive.google.com/file/d/1HHiVPZsytm1p4V_LugqAZVtY8-A6lJrS/view?usp=sharing)
