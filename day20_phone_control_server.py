@@ -9,7 +9,8 @@ import websockets
 
 HOST = "0.0.0.0"
 PORT = 8765
-HORIZONTAL_FORCE = 5.0  # 與day19 direction_to_force()的量級一致
+HORIZONTAL_FORCE = 45.0  # 提高一點,抵銷下面阻尼帶來的減速,實際移動幅度才感覺得出來
+DRAG_COEFFICIENT = 30.0  # 水平方向阻尼(模擬空氣阻力/飛控主動煞車):放開搖桿後速度約1-2秒內衰減到接近0,不會無限漂移
 FAILSAFE_TIMEOUT = 0.5  # 秒:超過這麼久沒收到搖桿訊息就歸零施力,避免斷線後持續漂移
 SIM_DT = 1 / 50
 TELEMETRY_INTERVAL = 1 / 15
@@ -32,6 +33,7 @@ def get_local_ip():
 def init_simulation():
     physics_client = p.connect(p.DIRECT)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    p.setTimeStep(SIM_DT)  # 沒設的話stepSimulation()預設固定用1/240s,跟迴圈的實際節奏(SIM_DT)對不上,模擬就會用「慢動作」在跑
     p.setGravity(0, 0, -9.8)
     p.loadURDF("plane.urdf")
     drone_id = p.loadURDF("sphere2.urdf", [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
@@ -44,10 +46,14 @@ async def sim_loop(drone_id, hover_force, get_telemetry_ref):
     while True:
         now = time.time()
         if now - joystick_state["last_update"] > FAILSAFE_TIMEOUT:
-            fx, fy = 0.0, 0.0
+            input_x, input_y = 0.0, 0.0
         else:
-            fx = joystick_state["x"] * HORIZONTAL_FORCE
-            fy = joystick_state["y"] * HORIZONTAL_FORCE
+            input_x = joystick_state["x"]
+            input_y = joystick_state["y"]
+
+        (vx, vy, _), _ = p.getBaseVelocity(drone_id)
+        fx = input_x * HORIZONTAL_FORCE - DRAG_COEFFICIENT * vx
+        fy = input_y * HORIZONTAL_FORCE - DRAG_COEFFICIENT * vy
 
         p.applyExternalForce(drone_id, -1, [fx, fy, hover_force], [0, 0, 0], p.WORLD_FRAME)
         p.stepSimulation()
