@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/drone_socket_service.dart';
 import '../widgets/joystick.dart';
+import '../widgets/position_radar.dart';
 
 class ControlScreen extends StatefulWidget {
   const ControlScreen({super.key});
@@ -86,7 +87,7 @@ class _ControlScreenState extends State<ControlScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('無人機模擬搖控器')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
@@ -146,25 +147,56 @@ class _ControlScreenState extends State<ControlScreen> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: Column(
                     children: [
-                      _TelemetryValue(label: 'X', value: telemetry.x),
-                      _TelemetryValue(label: 'Y', value: telemetry.y),
-                      _TelemetryValue(label: 'Z (高度)', value: telemetry.z),
+                      // 雷達圖:把X/Y畫成面板上的一個點,不用只靠數字腦補方向
+                      PositionRadar(x: telemetry.x, y: telemetry.y),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _TelemetryValue(label: 'X (左右)', value: telemetry.x),
+                          _TelemetryValue(label: 'Y (前後)', value: telemetry.y),
+                          _TelemetryValue(label: 'Z (高度)', value: telemetry.z),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              const Spacer(),
-              Joystick(
-                size: 220,
-                onChanged: (x, y) {
-                  _joystickX = x;
-                  _joystickY = y;
-                },
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Joystick(
+                      size: 220,
+                      onChanged: (x, y) {
+                        _joystickX = x;
+                        _joystickY = y;
+                      },
+                    ),
+                    Positioned(
+                      top: -20,
+                      child: Text('前 (Y+)', style: Theme.of(context).textTheme.labelSmall),
+                    ),
+                    Positioned(
+                      bottom: -20,
+                      child: Text('後 (Y-)', style: Theme.of(context).textTheme.labelSmall),
+                    ),
+                    Positioned(
+                      left: -20,
+                      child: Text('左\n(X-)', style: Theme.of(context).textTheme.labelSmall),
+                    ),
+                    Positioned(
+                      right: -20,
+                      child: Text('右\n(X+)', style: Theme.of(context).textTheme.labelSmall),
+                    ),
+                  ],
+                ),
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
             ],
           ),
         ),
