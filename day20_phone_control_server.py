@@ -1,11 +1,18 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # 跟day19一樣,避免YOLO跟PyBullet之間的OpenMP函式庫衝突
+
 import asyncio
+import base64
 import json
 import socket
+import threading
 import time
 
+import cv2
 import pybullet as p
 import pybullet_data
 import websockets
+from ultralytics import YOLO
 
 HOST = "0.0.0.0"
 PORT = 8765
@@ -15,8 +22,17 @@ FAILSAFE_TIMEOUT = 0.5  # 秒:超過這麼久沒收到搖桿訊息就歸零施�
 SIM_DT = 1 / 50
 TELEMETRY_INTERVAL = 1 / 15
 
+CAMERA_INDEX = 0
+CAMERA_FPS_TARGET = 8  # 攝影機執行緒的擷取+YOLO推論節奏,跟模擬迴圈分開,不會互相拖慢
+FRAME_SEND_INTERVAL = 1 / 6  # 傳給手機的畫面更新頻率,比擷取頻率低一點,省頻寬
+FRAME_RESIZE_WIDTH = 480
+JPEG_QUALITY = 60
+
 # ---------- 目前搖桿狀態(所有連線共用同一台模擬無人機) ----------
 joystick_state = {"x": 0.0, "y": 0.0, "last_update": 0.0}
+
+# ---------- 攝影機畫面(獨立執行緒更新,只是測試時的參考畫面,不會隨模擬位置移動) ----------
+camera_state = {"jpeg_b64": None}
 
 
 def get_local_ip():
@@ -28,6 +44,43 @@ def get_local_ip():
         return "127.0.0.1"
     finally:
         s.close()
+
+
+def camera_worker():
+    """獨立執行緒:擷取webcam畫面+YOLO偵測,不佔用asyncio事件迴圈,
+    避免拖慢PyBullet即時控制迴圈的節奏。純粹是測試參考畫面,
+    鏡頭本身沒有裝在無人機上,不會隨模擬位置移動。"""
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    if not cap.isOpened():
+        print("找不到可用的攝影機,跳過影像串流(App裡就只會有telemetry,沒有畫面)", flush=True)
+        return
+
+    model = YOLO("yolov8n.pt")
+    print("攝影機串流已啟動", flush=True)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            time.sleep(0.1)
+            continue
+
+        results = model(frame, imgsz=320, verbose=False)
+        annotated = results[0].plot()
+
+        h, w = annotated.shape[:2]
+        if w > FRAME_RESIZE_WIDTH:
+            scale = FRAME_RESIZE_WIDTH / w
+            annotated = cv2.resize(annotated, (FRAME_RESIZE_WIDTH, int(h * scale)))
+
+        cx, cy = annotated.shape[1] // 2, annotated.shape[0] // 2
+        cv2.line(annotated, (cx - 15, cy), (cx + 15, cy), (255, 255, 255), 1)
+        cv2.line(annotated, (cx, cy - 15), (cx, cy + 15), (255, 255, 255), 1)
+
+        ok, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        if ok:
+            camera_state["jpeg_b64"] = base64.b64encode(buf).decode("ascii")
+
+        time.sleep(1 / CAMERA_FPS_TARGET)
 
 
 def init_simulation():
@@ -85,12 +138,21 @@ async def send_telemetry(websocket, telemetry):
         await asyncio.sleep(TELEMETRY_INTERVAL)
 
 
+async def send_camera_frames(websocket):
+    while True:
+        jpeg_b64 = camera_state["jpeg_b64"]
+        if jpeg_b64 is not None:
+            await websocket.send(json.dumps({"type": "frame", "jpeg": jpeg_b64}))
+        await asyncio.sleep(FRAME_SEND_INTERVAL)
+
+
 async def handle_client(websocket):
     print(f"手機已連線: {websocket.remote_address}", flush=True)
     try:
         await asyncio.gather(
             receive_control(websocket),
             send_telemetry(websocket, telemetry),
+            send_camera_frames(websocket),
         )
     except websockets.exceptions.ConnectionClosed:
         pass
@@ -103,6 +165,7 @@ async def handle_client(websocket):
 async def main():
     _, drone_id, hover_force = init_simulation()
     asyncio.create_task(sim_loop(drone_id, hover_force, telemetry))
+    threading.Thread(target=camera_worker, daemon=True).start()
 
     local_ip = get_local_ip()
     print(f"伺服器啟動,手機App請連線到: ws://{local_ip}:{PORT}", flush=True)
@@ -112,7 +175,7 @@ async def main():
         await asyncio.Future()  # 永久執行,直到Ctrl+C
 
 
-telemetry = {"x": 0.0, "y": 0.0, "z": 0.0, "fx": 0.0, "fy": 0.0}
+telemetry = {"type": "telemetry", "x": 0.0, "y": 0.0, "z": 0.0, "fx": 0.0, "fy": 0.0}
 
 if __name__ == "__main__":
     try:

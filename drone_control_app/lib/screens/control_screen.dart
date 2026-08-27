@@ -27,6 +27,7 @@ class _ControlScreenState extends State<ControlScreen> {
     super.initState();
     _service.status.addListener(_onServiceChanged);
     _service.telemetry.addListener(_onServiceChanged);
+    _service.cameraFrame.addListener(_onServiceChanged);
     _sendTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
       _service.sendControl(_joystickX, _joystickY);
     });
@@ -46,6 +47,7 @@ class _ControlScreenState extends State<ControlScreen> {
     _sendTimer?.cancel();
     _service.status.removeListener(_onServiceChanged);
     _service.telemetry.removeListener(_onServiceChanged);
+    _service.cameraFrame.removeListener(_onServiceChanged);
     _service.disconnect();
     _hostController.dispose();
     _portController.dispose();
@@ -82,6 +84,7 @@ class _ControlScreenState extends State<ControlScreen> {
   Widget build(BuildContext context) {
     final status = _service.status.value;
     final telemetry = _service.telemetry.value;
+    final cameraFrame = _service.cameraFrame.value;
     final connected = status == ConnectionStatus.connected;
 
     return Scaffold(
@@ -144,6 +147,30 @@ class _ControlScreenState extends State<ControlScreen> {
                 ],
               ),
               const SizedBox(height: 24),
+              // 攝影機參考畫面:鏡頭沒有真的裝在無人機上,畫面不會隨模擬位置移動,純粹是測試時的參考
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Container(
+                    color: Colors.black26,
+                    child: cameraFrame != null
+                        ? Image.memory(
+                            cameraFrame,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          )
+                        : Center(
+                            child: Text(
+                              connected ? '等待攝影機畫面...' : '連線後顯示攝影機畫面(僅供參考,不隨模擬移動)',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),

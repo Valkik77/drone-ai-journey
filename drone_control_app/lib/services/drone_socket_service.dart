@@ -30,6 +30,8 @@ class DroneSocketService {
       ValueNotifier(ConnectionStatus.disconnected);
   final ValueNotifier<Telemetry> telemetry = ValueNotifier(const Telemetry());
   final ValueNotifier<String?> errorMessage = ValueNotifier(null);
+  // 攝影機參考畫面(不隨模擬位置移動,鏡頭沒有真的裝在無人機上)
+  final ValueNotifier<Uint8List?> cameraFrame = ValueNotifier(null);
 
   Future<void> connect(String host, int port) async {
     await disconnect();
@@ -46,7 +48,12 @@ class DroneSocketService {
         (message) {
           try {
             final data = jsonDecode(message as String) as Map<String, dynamic>;
-            telemetry.value = Telemetry.fromJson(data);
+            if (data['type'] == 'frame') {
+              final jpeg = data['jpeg'] as String?;
+              if (jpeg != null) cameraFrame.value = base64Decode(jpeg);
+            } else {
+              telemetry.value = Telemetry.fromJson(data);
+            }
           } catch (_) {
             // 忽略無法解析的訊息
           }
@@ -78,5 +85,6 @@ class DroneSocketService {
     await _channel?.sink.close();
     _channel = null;
     status.value = ConnectionStatus.disconnected;
+    cameraFrame.value = null;
   }
 }
