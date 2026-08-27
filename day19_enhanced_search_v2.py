@@ -40,7 +40,12 @@ CLASS_PRIORITY = {"person": 1, "bottle": 2, "cell phone": 2}
 CONFIDENCE_THRESHOLD = 0.4
 # 用意:降低門檻,減少bottle/cell phone因信心分數不足而被過濾掉、頻繁進入SEARCH的狀況
 
+MIN_BOX_AREA_RATIO = 0.01  # 框面積至少要佔畫面1%,濾掉太小/太遠、多半是雜訊的框
+PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.9  # person類別的框高寬比至少要接近1(偏向直立),濾掉手/局部肢體被誤判成person的情況
+# 用意:呼應README已知限制「局部人體易誤判為person類別」,不用新資料,單純用框的形狀/大小過濾掉明顯不合理的偵測
+
 def detect_candidates(results, model, target_classes, confidence_threshold, frame_center_x, frame_center_y):
+    frame_area = (frame_center_x * 2) * (frame_center_y * 2)
     candidates = []
     for box in results[0].boxes:
         confidence = float(box.conf[0])
@@ -52,6 +57,13 @@ def detect_candidates(results, model, target_classes, confidence_threshold, fram
             continue
         x1, y1, x2, y2 = box.xyxy[0]
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        box_w, box_h = x2 - x1, y2 - y1
+        if box_w <= 0 or box_h <= 0:
+            continue
+        if (box_w * box_h) / frame_area < MIN_BOX_AREA_RATIO:
+            continue
+        if class_name == "person" and (box_h / box_w) < PERSON_MIN_HEIGHT_WIDTH_RATIO:
+            continue
         center_x = (x1 + x2) // 2
         center_y = (y1 + y2) // 2
         distance = ((center_x - frame_center_x) ** 2 + (center_y - frame_center_y) ** 2) ** 0.5

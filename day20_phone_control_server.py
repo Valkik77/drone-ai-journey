@@ -28,6 +28,14 @@ FRAME_SEND_INTERVAL = 1 / 6  # 傳給手機的畫面更新頻率,比擷取頻率
 FRAME_RESIZE_WIDTH = 480
 JPEG_QUALITY = 60
 
+# 跟day19_enhanced_search_v2.py同一套篩選邏輯(這裡直接複製一份,不共用模組,
+# 理由見CLAUDE.md「Day腳本是逐日快照」那段):只畫關心的類別,並用框面積/長寬比
+# 濾掉太小或明顯不合理的偵測(例如手/局部肢體被誤判成person),畫面才不會太雜訊
+TARGET_CLASSES = {"person", "bottle", "cell phone"}
+CONFIDENCE_THRESHOLD = 0.4
+MIN_BOX_AREA_RATIO = 0.01
+PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.9
+
 # ---------- 目前搖桿狀態(所有連線共用同一台模擬無人機) ----------
 joystick_state = {"x": 0.0, "y": 0.0, "last_update": 0.0}
 
@@ -44,6 +52,38 @@ def get_local_ip():
         return "127.0.0.1"
     finally:
         s.close()
+
+
+def annotate_frame(frame, model):
+    results = model(frame, imgsz=320, verbose=False)
+    frame_h, frame_w = frame.shape[:2]
+    frame_area = frame_w * frame_h
+    annotated = frame.copy()
+
+    for box in results[0].boxes:
+        confidence = float(box.conf[0])
+        if confidence < CONFIDENCE_THRESHOLD:
+            continue
+        class_name = model.names[int(box.cls[0])]
+        if class_name not in TARGET_CLASSES:
+            continue
+
+        x1, y1, x2, y2 = (int(v) for v in box.xyxy[0])
+        box_w, box_h = x2 - x1, y2 - y1
+        if box_w <= 0 or box_h <= 0:
+            continue
+        if (box_w * box_h) / frame_area < MIN_BOX_AREA_RATIO:
+            continue
+        if class_name == "person" and (box_h / box_w) < PERSON_MIN_HEIGHT_WIDTH_RATIO:
+            continue
+
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(
+            annotated, f"{class_name} {confidence:.2f}", (x1, max(0, y1 - 10)),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2,
+        )
+
+    return annotated
 
 
 def camera_worker():
@@ -64,8 +104,7 @@ def camera_worker():
             time.sleep(0.1)
             continue
 
-        results = model(frame, imgsz=320, verbose=False)
-        annotated = results[0].plot()
+        annotated = annotate_frame(frame, model)
 
         h, w = annotated.shape[:2]
         if w > FRAME_RESIZE_WIDTH:
