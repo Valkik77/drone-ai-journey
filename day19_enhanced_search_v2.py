@@ -146,7 +146,7 @@ hover_force = mass * 9.8
 sim_x_positions, sim_y_positions, sim_z_positions = [], [], []
 
 # ---------- YOLO/OpenCV 初始化 ----------
-model = YOLO("yolov8n.pt")
+model = YOLO("yolov8s.pt")  # 從yolov8n升級,準確度較高但推論變慢(這台機器約36FPS->23FPS),不用蒐集新資料就能比較差異
 cap = cv2.VideoCapture(0)
 prev_time = time.time()
 

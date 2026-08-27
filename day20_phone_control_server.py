@@ -95,7 +95,7 @@ def camera_worker():
         print("找不到可用的攝影機,跳過影像串流(App裡就只會有telemetry,沒有畫面)", flush=True)
         return
 
-    model = YOLO("yolov8n.pt")
+    model = YOLO("yolov8s.pt")  # 從yolov8n升級,準確度較高但推論變慢,day20只需要8FPS左右,速度綽綽有餘
     print("攝影機串流已啟動", flush=True)
 
     while True:
