@@ -41,7 +41,7 @@ CONFIDENCE_THRESHOLD = 0.4
 # 用意:降低門檻,減少bottle/cell phone因信心分數不足而被過濾掉、頻繁進入SEARCH的狀況
 
 MIN_BOX_AREA_RATIO = 0.01  # 框面積至少要佔畫面1%,濾掉太小/太遠、多半是雜訊的框
-PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.9  # person類別的框高寬比至少要接近1(偏向直立),濾掉手/局部肢體被誤判成person的情況
+PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.5  # person類別的框高寬比門檻(原0.9太嚴:實測坐姿露出頭肩上半身的正常框h/w約0.76,會被誤濾掉),濾掉手/局部肢體被誤判成person的情況
 # 用意:呼應README已知限制「局部人體易誤判為person類別」,不用新資料,單純用框的形狀/大小過濾掉明顯不合理的偵測
 
 def detect_candidates(results, model, target_classes, confidence_threshold, frame_center_x, frame_center_y):

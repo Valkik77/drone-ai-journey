@@ -34,7 +34,7 @@ JPEG_QUALITY = 60
 TARGET_CLASSES = {"person", "bottle", "cell phone"}
 CONFIDENCE_THRESHOLD = 0.4
 MIN_BOX_AREA_RATIO = 0.01
-PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.9
+PERSON_MIN_HEIGHT_WIDTH_RATIO = 0.5  # 原0.9太嚴:實測坐姿露出頭肩上半身的正常框h/w約0.76,會被誤濾掉
 
 # ---------- 目前搖桿狀態(所有連線共用同一台模擬無人機) ----------
 joystick_state = {"x": 0.0, "y": 0.0, "last_update": 0.0}
