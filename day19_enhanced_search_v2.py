@@ -22,16 +22,15 @@ def get_direction(diff_x, diff_y, threshold=30):
         commands.append("STAY")
     return commands
 
-def direction_to_force(direction_list, horizontal_force=5.0):
-    fx, fy = 0, 0
-    if "RIGHT" in direction_list:
-        fx += horizontal_force
-    if "LEFT" in direction_list:
-        fx -= horizontal_force
-    if "UP" in direction_list:
-        fy += horizontal_force
-    if "DOWN" in direction_list:
-        fy -= horizontal_force
+KP_FORCE = 0.05  # 每像素誤差對應的施力(取代原本ON/OFF固定值,誤差越大修正力越大)
+KD_DAMPING = 20.0  # 依目前速度施加阻尼力:原本沒有這項,導致目標回到中心(diff=0)後施力歸零但慣性不消,球體會無限漂移(實測5秒只從1.34衰減到0.88m/s);加上阻尼後同樣情境2秒內就衰減到接近0
+PD_MAX_FORCE = 15.0  # 力的上限保護,避免畫面邊緣的大誤差產生過大施力
+
+def pd_force(diff_x, diff_y, vx, vy):
+    fx = KP_FORCE * diff_x - KD_DAMPING * vx
+    fy = -KP_FORCE * diff_y - KD_DAMPING * vy
+    fx = max(-PD_MAX_FORCE, min(PD_MAX_FORCE, fx))
+    fy = max(-PD_MAX_FORCE, min(PD_MAX_FORCE, fy))
     return fx, fy
 
 # ---------- 多類別搜索 + 優先度排序 ----------
@@ -195,8 +194,9 @@ while step_count < MAX_STEPS:
         raw_diff_steps.append(step_count)
         # 用意:只在有偵測到目標時,記錄原始偏移量,SEARCH狀態不記錄(沒有意義的資料)
 
-        direction = get_direction(smoothed_diff_x, smoothed_diff_y)
-        fx, fy = direction_to_force(direction)
+        direction = get_direction(smoothed_diff_x, smoothed_diff_y)  # 只用來顯示/記錄文字標籤,實際施力改用下面的連續PD控制
+        (vx, vy, _), _ = p.getBaseVelocity(droneId)
+        fx, fy = pd_force(smoothed_diff_x, smoothed_diff_y, vx, vy)
 
         if check_lock_on(confidence_history) and not lock_on_triggered:
             print(f"*** 鎖定確認:{target['class_name']} 連續{LOCK_ON_STREAK_REQUIRED}格信心分數穩定超過{LOCK_ON_THRESHOLD} ***", flush=True)
