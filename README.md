@@ -16,7 +16,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - Day4: 動態偵測(影格差異法、背景相減法MOG2)
 - Day5: 方向判斷邏輯與死區(deadzone)設計
 - Day6: 程式碼重構、FPS效能監控
-- Day7: 影片連結:https://drive.google.com/file/d/1cBRawfx2x6OdJi6wnm-D6SROSOBmG-YY/view?usp=drive_link
+- Day7: 統整
 
 ## 第二週進度(Day8-14)
 - Day8: YOLO環境安裝,首次即時物件偵測
@@ -140,8 +140,6 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
                         https://drive.google.com/file/d/1WuBEx0zIUK1emY_hZdn68olpfNhRBgfg/view?usp=sharing)
 
 ## 開發過程中的技術挑戰與解決
-（挑幾個你印象最深的debug故事，例如cv2.imshow位置錯誤、venv沒啟用、
- OMP衝突、GUI顯示卡問題——每個用2-3句話講清楚「問題→原因→解法」）
 
 - 技術棧:YOLOv8n(Ultralytics)、信心分數過濾、類別篩選、多目標決策
 - 效能:640解析度平均FPS約12-14,降至320解析度後提升至約20-25
