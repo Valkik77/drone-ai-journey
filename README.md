@@ -39,32 +39,22 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 
 
 #### Day15除錯紀錄：GUI模式與內顯的相容性問題
-- Day15: 
-  懸停測試中,程式使用 p.connect(p.GUI) 開啟一個3D視覺化視窗,原本預期球體會因為施加的向上力而穩定懸停在畫面中。但實際執行時,終端機出現這樣的錯誤:
-  pybullet.error: Not connected to physics server.
-  將終端機的完整輸出給AI看的時候,回答發現在程式理論上還在跑迴圈的中途,就出現了:
-    numActiveThreads = 0
-    stopping threads
-    finished
-  意思是PyBullet的物理伺服器執行緒自己終止了,不是程式邏輯錯誤和操作上按錯按鍵
+- Day15: PyBullet 物理伺服器意外中止
 
-  按照回答時給的指示
-    先檢查是不是誤觸鍵盤中斷程式(KeyboardInterrupt)——結果還是一樣
-    檢查一下終端機輸出的執行緒訊息(ExampleBrowserThreadFunc、MotionThreadFunc),和畫面的顯示卡資訊:
-      Vendor = Intel
-      Renderer = Intel(R) Iris(R) Xe Graphics
+懸停測試時使用 p.connect(p.GUI) 開啟 3D 視覺化視窗，原本預期球體會因施加的向上力而穩定懸停，但執行時出現 pybullet.error: Not connected to physics server。
 
-  判斷問題似乎是 PyBullet 的即時3D渲染引擎(GUI模式)與我的筆電的內顯(Intel Iris Xe)之間存在相容性問題,所以視窗渲染執行緒在運作過程中意外終止,連帶讓物理模擬的連線也一併斷開
+檢視終端機完整輸出後發現，程式理論上仍在迴圈中途時就出現 numActiveThreads = 0 / stopping threads / finished，代表 PyBullet 的物理伺服器執行緒自行終止，而非程式邏輯錯誤或誤觸按鍵。
 
-  之後改用 DIRECT 模式來解決問題
-    PyBullet提供兩種連線模式:
+排查時先排除鍵盤中斷（KeyboardInterrupt）的可能，結果相同；再對照終端機的執行緒訊息（ExampleBrowserThreadFunc、MotionThreadFunc）與顯示卡資訊：
 
-    GUI模式(p.GUI)
-    DIRECT模式(p.DIRECT)
+Vendor   = Intel
+Renderer = Intel(R) Iris(R) Xe Graphics
 
-    改用 p.connect(p.DIRECT) 後,完全跳過了容易出問題的3D渲染這一步,只保留核心的物理運算(重力、施力、位置計算),這部分運算穩定不受顯示卡影響,問題因此解決。
-    用圖表取代視覺化觀察
-    用 p.getBasePositionAndOrientation() 取得球體當下的座標,把高度(z軸)數值逐一記錄進一個list,模擬跑完後用 matplotlib 把整個過程的高度變化畫成折線圖，方便觀察結果。
+結合查詢資料與 AI 輔助討論，推斷問題出在 PyBullet 的即時 3D 渲染引擎（GUI 模式）與筆電內顯（Intel Iris Xe）的相容性，渲染執行緒在運作過程中意外終止，連帶中斷物理模擬的連線。
+
+解法：PyBullet 提供 GUI 與 DIRECT 兩種連線模式。改用 p.connect(p.DIRECT) 後完全跳過容易出問題的 3D 渲染，只保留核心的物理運算（重力、施力、位置計算），這部分不受顯示卡影響，問題因此解決。
+
+驗證方式的替代：少了 3D 視窗就無法用肉眼觀察，因此改用 p.getBasePositionAndOrientation() 取得球體當下的座標，將高度（z 軸）逐一記錄，模擬結束後以 matplotlib 將整個過程的高度變化繪成折線圖，改以數據驗證結果。
 
 
 #### Day19延伸優化：搜救情境功能擴充與除錯機制改良
