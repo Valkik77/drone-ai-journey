@@ -13,7 +13,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - Day1: Python基礎、開發環境建置
 - Day2: OpenCV基礎影像處理(灰階、模糊、邊緣偵測)
 - Day3: HSV顏色追蹤、多物體框選、中心偏移量計算
-- Day4: 動態偵測(影格差異法、背景相減法MOG2)
+- Day4: 動態偵測(背景相減法MOG2)
 - Day5: 方向判斷邏輯與死區(deadzone)設計
 - Day6: 程式碼重構、FPS效能監控
 - Day7: 統整
@@ -25,6 +25,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - Day11: 多目標處理,選擇離畫面中心最近的目標
 - Day12: 效能測試與優化(640→320解析度,FPS約12→24提升)
 - Day13: 程式碼重構為函式,提升可維護性
+- Day14: 第二週統整Demo(鎖定bottle類別,框選目標物並輸出方向指令)
 第二週從「只會辨識固定顏色」進化到「使用YOLOv8n辨識80種常見物體」,
 並實作了完整的AI感知→決策流程:
 
@@ -37,7 +38,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 - 三項壓力測試（目標消失/突然入鏡/多目標切換）驗證系統穩定性
 
 
-## 第三週進度(Day15-)
+#### Day15除錯紀錄：GUI模式與內顯的相容性問題
 - Day15: 
   懸停測試中,程式使用 p.connect(p.GUI) 開啟一個3D視覺化視窗,原本預期球體會因為施加的向上力而穩定懸停在畫面中。但實際執行時,終端機出現這樣的錯誤:
   pybullet.error: Not connected to physics server.
@@ -71,8 +72,10 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 在核心整合完成後，進一步延伸出更貼近搜救應用情境的功能：
 
 **功能擴充**
-- 多類別搜索：同時搜索person、backpack、suitcase等多種可能有
-  搜救價值的目標，並依優先度排序（活人優先於物品）
+- 多類別搜索：同時搜索多種可能有搜救價值的目標，並依優先度排序
+  （活人優先於物品）。初版(`day19_enhanced_search.py`)搜索person、
+  backpack、bottle；v2(`day19_enhanced_search_v2.py`)改為person、
+  bottle、cell phone
 - 持續搜索模式：目標消失時，執行週期性擺動搜索，取代原本的
   完全靜止，更貼近真實搜救無人機的行為邏輯
 - 信心分數趨勢追蹤：要求連續多格畫面穩定維持高信心分數，
@@ -100,6 +103,34 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 信心分數普遍低於穩定站立的person，容易觸發搜索模式，透過調整
 信心分數門檻與擴充目標類別清單(加入cell phone)緩解此問題。
 
+**後續優化(v2)**
+- 框面積/長寬比過濾：框面積需佔畫面1%以上，person類別的框高寬比需≥0.5，
+  濾掉手或局部肢體被誤判成person的情況(門檻原本設0.9，實測坐姿上半身
+  的正常框約0.76會被誤濾，因此放寬到0.5)
+- 模型由yolov8n.pt換成yolov8s.pt：不用蒐集新資料，直接換較大的預訓練
+  模型提升準確度，代價是推論變慢(這台機器約36FPS降到23FPS)
+- 施力改為連續PD控制：原本依方向指令施加固定大小的力(bang-bang控制)，
+  目標回到中心後施力歸零但慣性不消，球體會一直漂移。改成施力與像素誤差
+  成正比(P項)，再加上與速度成正比的阻尼(D項)，同樣情境下速度約2秒內
+  衰減到接近0
+
+### 延伸：Day20 手機遙控App
+- `day20_phone_control_server.py`：在PyBullet DIRECT模擬外包一層
+  asyncio/websockets伺服器(port 8765)，接收手機搖桿向量、回傳位置telemetry，
+  並另開執行緒把webcam + YOLO偵測畫面串流給手機當參考
+- `drone_control_app/`：Flutter App，包含虛擬搖桿與X/Y位置雷達圖
+- 加入速度阻尼讓放開搖桿後1-2秒內停下，以及failsafe機制：超過0.5秒沒收到
+  控制訊息就把施力歸零，避免斷線後無人機一直漂走
+- 這是手動控制路徑，跟YOLO自動追蹤流程彼此獨立
+
+### 延伸：Day21 空拍視角偵測
+- `day21_aerial_search.py`：COCO預訓練模型的資料大多是地面平視角度，
+  改用VisDrone空拍資料集微調的yolov8s權重(來源：Hugging Face
+  dronefreak/visdrone-yolov8s，AGPL-3.0)
+- 輸入可切換webcam或空拍影片檔；類別改用VisDrone的pedestrian/people等
+- 偏移量正規化到[-1,1]，不同解析度的影片行為才一致；拿掉針對平視全身框
+  設計的長寬比過濾，並調低框面積門檻以適應空拍小目標
+
 
 ## 第一週亮點:
 - HSV顏色追蹤 + 多物體框選 + 方向判斷邏輯(Day1-7)
@@ -125,12 +156,12 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
 2人	          13.4	          20.8-25.0
 
 ## 已知限制與未來方向
-- YOLOv8n對訓練資料中罕見角度物體辨識率下降
-- 局部人體易誤判為person類別，可透過框面積或長寬比進一步過濾
-- 目前施力控制為固定力，缺乏PID回饋機制，STAY狀態下仍有慣性漂移
+- COCO預訓練模型對訓練資料中罕見角度物體辨識率下降(空拍視角已在Day21改用VisDrone微調模型嘗試改善)
+- 局部人體易誤判為person類別：Day19 v2已加入框面積/長寬比過濾緩解，但無法完全消除
+- 施力控制已從固定力改為PD控制(Day19 v2)，尚未加入積分項(I)，參數也只是手動調整
 - 手持物體（如bottle）因晃動導致信心分數不穩定，較穩定站立的person類別更容易觸發搜索模式，反映YOLO對動態小物體的辨識限制
-- 未來可導入真實硬體(如DJI Tello EDU)驗證，或加入PID控制器提升穩定性
-- 若要製作手機遙控App，需要額外學習行動應用開發（React Native/Flutter）與即時串流技術，這部分超出目前的Python/AI開發範疇
+- 目前全部在PyBullet模擬中驗證，未來可導入真實硬體(如DJI Tello EDU)測試
+- 手機遙控App(Day20)目前只能手動控制模擬無人機，尚未跟YOLO自動追蹤流程整合
 
 ## Demo影片
 [第一週：顏色追蹤展示](https://drive.google.com/file/d/1HHiVPZsytm1p4V_LugqAZVtY8-A6lJrS/view?usp=sharing)
@@ -139,7 +170,7 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
                         https://drive.google.com/file/d/1wlJZ50uZaNAIQQlGx2uDByH5-ySZy8v9/view?usp=sharing
                         https://drive.google.com/file/d/1WuBEx0zIUK1emY_hZdn68olpfNhRBgfg/view?usp=sharing)
 
-## 開發過程中的技術挑戰與解決
+## 第二週技術摘要
 
 - 技術棧:YOLOv8n(Ultralytics)、信心分數過濾、類別篩選、多目標決策
 - 效能:640解析度平均FPS約12-14,降至320解析度後提升至約20-25
@@ -149,10 +180,19 @@ PyBullet物理引擎模擬無人機的施力與運動，驗證控制邏輯的正
   FPS計算除以零的邊界情況
 
 ## 使用技術
-Python, OpenCV, NumPy
+Python, OpenCV, NumPy, YOLOv8(Ultralytics), PyBullet, matplotlib, asyncio/websockets, Flutter
 
 ## 如何執行
+**Day1-14(OpenCV/YOLO)**：使用根目錄的venv(Python 3.12)
 1. 建立虛擬環境:`python -m venv venv`
 2. 啟用虛擬環境:`.\venv\Scripts\Activate.ps1`
-3. 安裝套件:`pip install opencv-python numpy`
-4. 執行:`python day6_refactored.py`
+3. 安裝套件:`pip install opencv-python numpy ultralytics`
+4. 執行:例如 `python day6_refactored.py`、`python day14_final_demo.py`
+
+**Day15之後(PyBullet)**：PyBullet在Python 3.12上編譯不過，改用Miniconda的Python 3.10環境
+1. `conda create -n drone_sim python=3.10`，`conda activate drone_sim`
+2. `pip install pybullet opencv-python numpy ultralytics matplotlib websockets`
+3. 執行:例如 `python day19_enhanced_search_v2.py`
+
+**Day20手機遙控**：先在drone_sim環境執行 `python day20_phone_control_server.py`，
+再到 `drone_control_app/` 執行 `flutter pub get` 與 `flutter run`，在App輸入伺服器顯示的IP:port
